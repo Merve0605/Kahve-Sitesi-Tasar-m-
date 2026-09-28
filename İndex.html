@@ -1,0 +1,372 @@
+```html
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Viewport ayarı: Adaptif tasarım için kritik --><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demlik: Anında Kahve Siparişi</title>
+    
+    <!-- FAVICON TANIMI: Sitenin içeriğini yansıtan kahve fincanı emojisi (☕) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
+    
+<script src="https://cdn.tailwindcss.com"></script>
+    
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            /* Açık kahveden koyu kahveye geçişli gradyan arkaplan */
+            background: linear-gradient(to bottom right, #f5e3d7, #a1887f, #6d4c41, #3e2723);
+            background-attachment: fixed;
+        }
+
+        /* ---------------------------------------------------- */
+        /* KAHVE FİNCANI VE ÇEKİRDEĞİ ANİMASYONU */
+        /* ---------------------------------------------------- */
+
+        .floating-asset {
+            position: absolute;
+            z-index: -1;
+            animation: floatAndRotate 25s infinite ease-in-out;
+            pointer-events: none;
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.3));
+        }
+
+        @keyframes floatAndRotate {
+            0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.7; }
+            25% { transform: translateY(-30vh) translateX(20vw) rotate(90deg); opacity: 0.5; }
+            50% { transform: translateY(-60vh) translateX(-30vw) rotate(180deg); opacity: 0.3; }
+            75% { transform: translateY(-30vh) translateX(10vw) rotate(270deg); opacity: 0.5; }
+            100% { transform: translateY(0) translateX(0) rotate(360deg); opacity: 0.7; }
+        }
+
+        @keyframes coffeeShake {
+            0%, 100% { transform: rotate(-10deg); }
+            10%, 30%, 50%, 70%, 90% { transform: rotate(-15deg) translateY(-2px); }
+            20%, 40%, 60%, 80% { transform: rotate(-5deg) translateY(0); }
+        }
+
+        .animated-emoji {
+            animation: coffeeShake 4s ease-in-out infinite;
+        }
+
+        /* Giriş alanları için mobil uygulamaya özgü yeni stil */
+        .coffee-input {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fbe9e7;
+            border: none;
+            padding: 1rem;
+            border-radius: 8px; 
+            transition: all 0.3s ease;
+        }
+        .coffee-input:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            outline: 2px solid #a1887f;
+            outline-offset: 2px;
+            box-shadow: 0 0 10px rgba(161, 136, 127, 0.5);
+        }
+        .hidden-view {
+            display: none;
+        }
+        
+        /* Seçilen kategori için yeni stil */
+        .selected-category {
+            background-color: #a1887f !important;
+            border-color: #fbe9e7 !important;
+            box-shadow: 0 0 15px rgba(251, 233, 231, 0.5);
+            transform: scale(1.02);
+        }
+        .selected-category p, .selected-category h3 {
+            color: #3e2723 !important;
+        }
+        
+        /* Adaptif Düzenleme: Mesaj Kutusu Butonunun Boyutu */
+        #messageBox button {
+            min-height: 44px; 
+            min-width: 100px;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white flex items-center justify-center p-4">
+
+    <!-- Ana Uygulama Konteyneri --><div id="appContainer" class="w-full max-w-lg bg-black bg-opacity-40 backdrop-blur-sm p-8 md:p-10 rounded-xl shadow-2xl border border-gray-700/50">
+
+        <!-- 1. GİRİŞ FORMU --><div id="loginView">
+            <div class="text-center mb-10">
+                <div class="text-6xl mb-3 transform rotate-[-10deg] animated-emoji">☕</div>
+                <h1 class="text-4xl font-extrabold text-[#fbe9e7]">
+                    Demlik: Anında Kahve Deneyimi
+                </h1>
+                <p class="text-sm mt-2 text-[#d7ccc8]">
+                    Giriş yaparak sihirli dünyaya adım atın.
+                </p>
+            </div>
+
+            <form id="coffeeForm" class="space-y-6">
+                <!-- Ad Soyad Girişi --><div>
+                    <label for="name" class="block text-sm font-medium text-[#d7ccc8] mb-2">Adınız ve Soyadınız</label>
+                    <input type="text" id="name" name="name" required
+                           class="coffee-input w-full rounded-lg focus:outline-none placeholder:text-gray-400">
+                </div>
+
+                <!-- Telefon Numarası Girişi --><div>
+                    <label for="phone" class="block text-sm font-medium text-[#d7ccc8] mb-2">Telefon Numaranız</label>
+                    <input type="tel" id="phone" name="phone" required
+                           class="coffee-input w-full rounded-lg focus:outline-none placeholder:text-gray-400"
+                           placeholder="Örn: 5xx xxx xx xx">
+                </div>
+
+                <!-- Temassız Giriş Alanı (E-posta/ID) --><div>
+                    <label for="contactlessID" class="block text-sm font-medium text-[#d7ccc8] mb-2">
+                        Temassız İletişim ID'niz (Örn: E-posta Adresiniz)
+                    </label>
+                    <input type="email" id="contactlessID" name="contactlessID" required
+                           class="coffee-input w-full rounded-lg focus:outline-none placeholder:text-gray-400">
+                </div>
+
+                <!-- Sipariş Notu --><div>
+                    <label for="orderNote" class="block text-sm font-medium text-[#d7ccc8] mb-2">Sipariş Notunuz</label>
+                    <textarea id="orderNote" name="orderNote" rows="3"
+                              class="coffee-input w-full rounded-lg focus:outline-none placeholder:text-gray-400"></textarea>
+                </div>
+
+                <!-- Gönder Butonu --><button type="submit"
+                        class="w-full bg-[#5d4037] hover:bg-[#4e342e] text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-[1.02] shadow-xl">
+                    Giriş Yap ve Kahveyi Demle
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. KATEGORİLER VE MENÜ GÖRÜNÜMÜ --><div id="categoriesView" class="hidden-view">
+            <h2 class="text-3xl font-extrabold text-amber-300 text-center mb-6">Sihirli Demleme Alanı</h2>
+            <p id="selectionInfo" class="text-center text-[#d7ccc8] mb-4">Lütfen bir kahve kategorisi seçin.</p>
+
+            <div class="space-y-4">
+                <div id="cat-turk" onclick="selectCategory('Türk Kahvesi', 'cat-turk')"
+                     class="category-item bg-gray-700/50 p-4 rounded-lg border border-gray-600 cursor-pointer transition duration-300 hover:bg-gray-600/70">
+                    <h3 class="font-bold text-lg text-[#fbe9e7]">Türk Kahvesi Çeşitleri</h3>
+                    <p class="text-sm text-[#d7ccc8]">Sade, Orta, Şekerli, Menengiç, Dibek.</p>
+                </div>
+                <div id="cat-filtre" onclick="selectCategory('Filtre Kahveler', 'cat-filtre')"
+                     class="category-item bg-gray-700/50 p-4 rounded-lg border border-gray-600 cursor-pointer transition duration-300 hover:bg-gray-600/70">
+                    <h3 class="font-bold text-lg text-[#fbe9e7]">Filtre Kahveler</h3>
+                    <p class="text-sm text-[#d7ccc8]">Americano, V60, Chemex.</p>
+                </div>
+                <div id="cat-espresso" onclick="selectCategory('Espresso Bazlılar', 'cat-espresso')"
+                     class="category-item bg-gray-700/50 p-4 rounded-lg border border-gray-600 cursor-pointer transition duration-300 hover:bg-gray-600/70">
+                    <h3 class="font-bold text-lg text-[#fbe9e7]">Espresso Bazlılar</h3>
+                    <p class="text-sm text-[#d7ccc8]">Latte, Cappuccino, Macchiato.</p>
+                </div>
+                <div id="cat-soguk" onclick="selectCategory('Soğuk İçecekler', 'cat-soguk')"
+                     class="category-item bg-gray-700/50 p-4 rounded-lg border border-gray-600 cursor-pointer transition duration-300 hover:bg-gray-600/70">
+                    <h3 class="font-bold text-lg text-[#fbe9e7]">Soğuk İçecekler</h3>
+                    <p class="text-sm text-[#d7ccc8]">Cold Brew, Iced Latte, Frappuccino.</p>
+                </div>
+            </div>
+
+            <button id="mainCategoryButton" onclick="placeOrder()"
+                    class="mt-8 w-full bg-green-600 hover:bg-green-700 text-black font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] shadow-xl disabled:opacity-50"
+                    disabled>
+                Lütfen Önce Bir Kahve Kategorisi Seçin
+            </button>
+            
+            <button onclick="showSection('quizView')"
+                    class="mt-3 w-full bg-amber-600 hover:bg-amber-700 text-black font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] shadow-xl">
+                Bilgilerini Sına: Kahve Quiz'ine Geç
+            </button>
+            
+            <button onclick="showSection('loginView')"
+                    class="mt-3 w-full text-[#d7ccc8] text-sm hover:text-white transition">
+                Giriş Ekranına Dön
+            </button>
+        </div>
+
+        <!-- 3. QUIZ GÖRÜNÜMÜ --><div id="quizView" class="hidden-view">
+            <h2 class="text-3xl font-extrabold text-amber-300 text-center mb-6">Kahve Bilgisi Mini Quiz</h2>
+            <div class="p-4 bg-gray-700/50 rounded-lg border-l-4 border-amber-500 shadow-inner mb-6">
+                <h3 class="font-bold text-amber-300 text-lg mb-1">💡 İpucu:</h3>
+                <p id="quizHintBox" class="text-gray-200 italic text-sm">İpucu buraya yüklenecek.</p>
+            </div>
+            <div id="quizContent" class="space-y-4"></div>
+            <div id="quizResult" class="hidden text-center mt-6">
+                <p id="resultText" class="text-xl font-bold mb-4"></p>
+                <button onclick="resetQuiz()" class="bg-[#5d4037] hover:bg-[#4e342e] text-white font-bold py-2 px-4 rounded-lg transition">Yeniden Oyna</button>
+            </div>
+            <button onclick="showSection('categoriesView')" class="mt-8 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition">Geri Dön</button>
+        </div>
+
+        <!-- 4. SİPARİŞ VE FATURA --><div id="orderProcessingView" class="hidden-view text-center">
+            <div id="step-confirmation" class="mb-8">
+                <div class="text-7xl mb-6 text-green-400">☕</div>
+                <h2 class="text-3xl font-extrabold text-green-400 mb-4">Siparişiniz Alındı!</h2>
+                <p class="text-xl font-semibold text-[#fbe9e7] mb-2">Seçilen: <span id="confirmedCoffeeType"></span></p>
+            </div>
+            <div id="step-payment" class="bg-gray-700/50 p-6 rounded-xl border border-yellow-500/50 shadow-lg mb-8">
+                <p id="totalPaymentAmount" class="font-extrabold text-amber-300 text-2xl">₺0.00</p>
+                <button onclick="completePayment()" class="mt-6 w-full bg-yellow-600 hover:bg-yellow-700 text-black font-bold py-3 px-4 rounded-lg">Ödemeyi Tamamla</button>
+            </div>
+            <div id="step-invoice" class="hidden-view text-left">
+                <div id="invoiceContent" class="bg-gray-900/70 p-4 rounded-lg border border-gray-600 mb-4"></div>
+                <button onclick="showSection('loginView')" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg">Yeni Sipariş</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Mesaj Kutusu --><div id="messageBox" class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-70 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-8 rounded-xl max-w-sm w-full text-center border border-amber-500">
+            <h3 id="messageTitle" class="text-2xl font-bold mb-3 text-amber-300"></h3>
+            <p id="messageText" class="text-gray-200 mb-6"></p>
+            <button onclick="closeMessageBox()" class="bg-amber-600 hover:bg-amber-700 text-black font-bold py-2 px-6 rounded-lg">Kapat</button>
+        </div>
+    </div>
+
+    <script>
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const loginForm = document.getElementById('coffeeForm');
+        const views = ['loginView', 'categoriesView', 'quizView', 'orderProcessingView'];
+        const mainCategoryButton = document.getElementById('mainCategoryButton');
+        let onCloseCallback = () => {}; 
+        let selectedCoffeeType = null; 
+        let currentOrder = {};
+        const BASE_PRICE = 80.00;
+        const VAT_RATE = 0.10;
+
+        function showMessageBox(title, text, callback) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            messageBox.style.display = 'flex';
+            onCloseCallback = callback || (() => {});
+        }
+
+        function closeMessageBox() {
+            messageBox.style.display = 'none';
+            onCloseCallback(); 
+            onCloseCallback = () => {}; 
+        }
+
+        function showSection(sectionId) {
+            views.forEach(viewId => {
+                const el = document.getElementById(viewId);
+                if (el) el.classList.add('hidden-view');
+            });
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.classList.remove('hidden-view');
+                if (sectionId === 'loginView') { clearAllFormFields(); selectCategory(null, null); }
+                if (sectionId === 'quizView') { resetQuiz(); loadQuestion(); }
+            }
+        }
+
+        function clearAllFormFields() {
+            document.getElementById('name').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('orderNote').value = '';
+            document.getElementById('contactlessID').value = '';
+        }
+
+        function selectCategory(name, elementId) {
+            document.querySelectorAll('.category-item').forEach(item => {
+                item.classList.remove('selected-category');
+                const check = item.querySelector('.check-mark');
+                if (check) check.remove();
+            });
+            
+            if (elementId) {
+                selectedCoffeeType = name;
+                const el = document.getElementById(elementId);
+                el.classList.add('selected-category');
+                const checkMark = document.createElement('span');
+                checkMark.className = 'check-mark float-right text-2xl font-bold text-black';
+                checkMark.innerHTML = '✔';
+                el.appendChild(checkMark);
+                mainCategoryButton.textContent = `Siparişimi Onayla: ${name}`;
+                mainCategoryButton.disabled = false;
+            } else {
+                selectedCoffeeType = null;
+                mainCategoryButton.textContent = "Lütfen Önce Bir Kahve Kategorisi Seçin";
+                mainCategoryButton.disabled = true;
+            }
+        }
+
+        function placeOrder() {
+            const kdv = BASE_PRICE * VAT_RATE;
+            const total = BASE_PRICE + kdv;
+            currentOrder = { item: selectedCoffeeType, basePrice: BASE_PRICE, vat: kdv, total: total, date: new Date().toLocaleDateString('tr-TR'), time: new Date().toLocaleTimeString('tr-TR') };
+            document.getElementById('confirmedCoffeeType').textContent = currentOrder.item;
+            document.getElementById('totalPaymentAmount').textContent = `₺${currentOrder.total.toFixed(2)}`;
+            showSection('orderProcessingView');
+            document.getElementById('step-confirmation').classList.remove('hidden-view');
+            document.getElementById('step-payment').classList.remove('hidden-view');
+            document.getElementById('step-invoice').classList.add('hidden-view');
+        }
+
+        function completePayment() {
+            showMessageBox("Ödeme Başarılı", `₺${currentOrder.total.toFixed(2)} tahsil edildi.`, () => {
+                generateInvoice();
+                document.getElementById('step-payment').classList.add('hidden-view');
+                document.getElementById('step-invoice').classList.remove('hidden-view');
+            });
+        }
+
+        function generateInvoice() {
+            const name = document.getElementById('name').value || "Misafir";
+            document.getElementById('invoiceContent').innerHTML = `<div class='space-y-2 text-sm'><p><b>Müşteri:</b> ${name}</p><p><b>Ürün:</b> ${currentOrder.item}</p><p><b>Toplam:</b> ₺${currentOrder.total.toFixed(2)}</p><p class='text-xs italic'>${currentOrder.date} ${currentOrder.time}</p></div>`;
+        }
+
+        // ----------------------------------------------------
+        // GÜNCELLENMİŞ HAREKETLİ VARLIKLAR (FİNCAN VE ÇEKİRDEK)
+        // ----------------------------------------------------
+        function createAnimatedAssets() {
+            const body = document.body;
+            const itemCount = 20;
+
+            // Daha belirgin Kahve Fincanı SVG'si
+            const cupSVG = `
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="#d7ccc8" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 21H20V19H2V21ZM20 8H18V5H4V15C4 17.21 5.79 19 8 19H14C16.21 19 18 17.21 18 15V13H20C21.1 13 22 12.1 22 11V10C22 8.9 21.1 8 20 8ZM18 11H16V10H18V11ZM20 11H18V10H20V11ZM16 7V15C16 16.1 15.1 17 14 17H8C6.9 17 6 16.1 6 15V7H16Z"/>
+                </svg>`;
+
+            // Kahve Çekirdeği SVG'si
+            const beanSVG = `
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="#3e2723" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C7 2 3 6.48 3 12C3 17.52 7 22 12 22C17 22 21 17.52 21 12C21 6.48 17 2 12 2ZM13 18C10.5 17.5 8.5 15.5 8 13C7.5 10.5 9.5 8.5 12 8C14.5 8.5 16.5 10.5 17 13C17.5 15.5 15.5 17.5 13 18Z"/>
+                </svg>`;
+            
+            for (let i = 0; i < itemCount; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-asset';
+                
+                // Yarı yarıya fincan ve çekirdek dağıtımı
+                element.innerHTML = i % 2 === 0 ? cupSVG : beanSVG;
+
+                const startX = Math.random() * 100;
+                const startY = 100 + Math.random() * 100;
+                const duration = 15 + Math.random() * 15;
+                const delay = Math.random() * 20;
+
+                element.style.left = `${startX}vw`;
+                element.style.top = `${startY}vh`;
+                element.style.animationDuration = `${duration}s`;
+                element.style.animationDelay = `-${delay}s`; 
+
+                body.appendChild(element);
+            }
+        }
+
+        const quizQuestions = [
+            { question: "Kahve botanik olarak nedir?", options: ["Çilek", "Üzüm", "Kiraz", "Böğürtlen"], answer: "Kiraz", hint: "Kırmızı meyve tohumudur." },
+            { question: "En sert kahve çekirdeği?", options: ["Arabica", "Robusta", "Liberica", "Excelsa"], answer: "Robusta", hint: "Kafeini boldur." }
+        ];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        function resetQuiz() { currentQuestionIndex = 0; score = 0; document.getElementById('quizResult').classList.add('hidden'); document.getElementById('quizContent').classList.remove('hidden'); }
+        function loadQuestion() {
+            if (currentQuestionIndex >= quizQuestions.length) { showResult(); return; }
+            const q = quizQuestions[currentQuestionIndex];
+            document.getElementById('quizHintBox').textContent = q.hint;
+            let opts = '';
+            q.options.forEach(o => opts += `<button onclick="checkAnswer
